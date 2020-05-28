@@ -1,8 +1,12 @@
 package hjr
 
 import (
+	"bufio"
 	"bytes"
+	"compress/gzip"
+	"context"
 	"fmt"
+	"io"
 	"sort"
 )
 
@@ -114,12 +118,84 @@ func sliceCellClusters(clusters []CellCluster, start, size int) ([]CellCluster, 
 	return clusters[start:finish], finish >= len(clusters)
 }
 
-//CellClusterIndexWriter interface
-type CellClusterIndexWriter interface {
-	Write(clusters []CellCluster, line int) error
+
+type RawLineWriter interface {
+	Write(c context.Context, id string, line int, raw []byte) 
+}
+
+//CellClusterLineWriter interface
+type CellClusterLineWriter interface {
+	Write(ctx context.Context,  source string, line int, clusters []CellCluster,) error
 }
 
 // CellClusterReader interface {
 type CellClusterReader interface {
 	Read(cluster []CellCluster) error
+}
+
+
+type Scanner struct{
+	sourceId string
+	r io.Reader
+	rlw RawLineWriter
+}
+
+
+type indexWriter struct {
+	wc io.WriteCloser
+}
+/*
+func (i indexWriter)  Write(ctx context.Context, clusters []CellCluster, line int) error {
+
+}*/
+func NewScanner(sourceId string, r io.Reader, zip bool) (s *Scanner,err error) {
+	if zip {
+		r, err = gzip.NewReader(r);
+		if err != nil {
+			return
+		}
+	}
+
+	s = &Scanner {
+		sourceId:sourceId,
+		r:r,
+	}
+	return 
+}
+
+	
+
+func (s Scanner) newSplitFunc(ctx context.Context) bufio.SplitFunc {
+	var line int;
+	return func (data[]byte, eof bool) (adv int, tkn[]byte, err error)  {
+	adv,tkn, err = bufio.ScanLines(data, eof);
+	if err != nil {
+		return
+	}
+	line ++
+	if len(tkn)>0 {
+		ctkn := make([]byte,len(tkn))
+		copy(ctkn,tkn)
+		s.rlw.Write(ctx,  s.sourceId, line, ctkn)
+	}
+	return
+	}
+}
+
+func (s Scanner) rd(ctx context.Context) (err error) {
+	nctx,cancel := context.WithCancel(ctx)
+	defer cancel()
+	sc := bufio.NewScanner(s.r)
+	sc.Split(s.newSplitFunc(nctx))
+	for sc.Scan() {
+		select {
+		case <- ctx.Done():
+			break
+		default:
+			if err = sc.Err(); err != nil {
+				break
+			}
+		}
+	}
+	return err
 }
