@@ -182,7 +182,7 @@ func (s Scanner) newSplitFunc(ctx context.Context) bufio.SplitFunc {
 	}
 }
 
-func (s Scanner) rd(ctx context.Context) (err error) {
+func (s Scanner) Read(ctx context.Context) (err error) {
 	nctx,cancel := context.WithCancel(ctx)
 	defer cancel()
 	sc := bufio.NewScanner(s.r)
@@ -198,4 +198,14 @@ func (s Scanner) rd(ctx context.Context) (err error) {
 		}
 	}
 	return err
+}
+
+type Scan2IndexLink struct {
+	sep []byte
+	c chan []byte
+}
+
+func (si Scan2IndexLink) Write(c context.Context, id string, line int, data []byte)  {
+	cells := buildCells(data, si.sep)
+	_ = 
 }
