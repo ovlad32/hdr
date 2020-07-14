@@ -2,7 +2,7 @@ debug
 debug.test
 .exe
 .vscode
-
+.index/*
 # Binaries for programs and plugins
 *.exe
 *.exe~

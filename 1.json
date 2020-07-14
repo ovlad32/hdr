@@ -1,0 +1,14 @@
+{
+    "_id":12345,
+    Tables: ["table1name", "table2name"], //+index
+    "Type"  : "Flow",
+    "LastCheck" : "2020-05-12T20:17:46.384Z",      // Timestamps for last time it was checked
+    // One entry for each combination where a "further" analysis is warranted
+    // If there is no combination entry for a given pair of columns, then no further analysis
+    "ValidPairs" : [
+        "T1col1name | T2col1name",
+        "T1col4name | T2col3name",
+        ...
+        },
+    "Properties" : { }      // Optional properties if needed
+}
